@@ -1,0 +1,40 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/3/a/PC.hdl
+/**
+ * A 16-bit counter.
+ * if      reset(t): out(t+1) = 0
+ * else if load(t):  out(t+1) = in(t)
+ * else if inc(t):   out(t+1) = out(t) + 1
+ * else              out(t+1) = out(t)
+ */
+CHIP PC {
+    IN in[16], reset, load, inc;
+    OUT out[16];
+
+    PARTS:
+    // 三个信号有着不同的优先级 
+    // 是否修改寄存器 
+    Or(a= reset, b= load, out= or0);
+    Or(a= or0, b= inc, out= loadFlag);
+
+    Register(in= nextState, load= loadFlag, out= out, out= regState);
+
+    // Incremented state
+    Inc16(in= regState, out= incState);
+    
+    Mux16(a= incState, b= in, sel= load, out= loadMuxOut);
+    Mux16(a= loadMuxOut, b= false, sel= reset, out= nextState);
+    
+    /** Simple Implementation 
+    Register(in= nextState, load= true, out= out, out= regState);
+
+    // Incremented state
+    Inc16(in= regState, out= incState);
+
+    Mux16(a= regState, b= incState, sel= inc, out= incMuxOut);
+    Mux16(a= incMuxOut, b= in, sel= load, out= loadMuxOut);
+    Mux16(a= loadMuxOut, b= false, sel= reset, out= nextState);
+    */ 
+}

@@ -1,0 +1,39 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/3/b/RAM16K.hdl
+/**
+ * Memory of 16K 16-bit registers.
+ * If load is asserted, the value of the register selected by
+ * address is set to in; Otherwise, the value does not change.
+ * The value of the selected register is emitted by out.
+ */
+CHIP RAM16K {
+    IN in[16], load, address[14];
+    OUT out[16];
+
+    PARTS:
+    // Compute the control signals for each RAM4K
+    Not(in=address[12], out=notAddr0);
+    Not(in=address[13], out=notAddr1);
+
+    And(a=notAddr0, b=notAddr1, out=addr00);
+    And(a=address[12], b=notAddr1, out=addr01);
+    And(a=notAddr0, b=address[13], out=addr10);
+    And(a=address[12], b=address[13], out=addr11);
+
+    // Combine with the load signal
+    And(a=load, b=addr00, out=load0);
+    And(a=load, b=addr01, out=load1);
+    And(a=load, b=addr10, out=load2);
+    And(a=load, b=addr11, out=load3);
+
+    // Instantiate RAM4K chips
+    RAM4K(in=in, load=load0, address=address[0..11], out=out0);
+    RAM4K(in=in, load=load1, address=address[0..11], out=out1);
+    RAM4K(in=in, load=load2, address=address[0..11], out=out2);
+    RAM4K(in=in, load=load3, address=address[0..11], out=out3);
+
+    // Select the output from the correct RAM4K chip
+    Mux4Way16(a=out0, b=out1, c=out2, d=out3, sel=address[12..13], out=out);
+}
