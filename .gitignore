@@ -1,0 +1,57 @@
+.vscode/
+
+*.pdf 
+Slides/ 
+# TEMP files
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+*.tmp
+*.bak
+*.old
+*temp*
+*tmp*
+
+# 编译输出
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+*.out
+*.a
+*.lib
+*.class
+*.jar
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.gz
+*.zip
+*.tar
+*.rar
+*.7z
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+dist/
+build/
+
+# LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+
+
+
+
