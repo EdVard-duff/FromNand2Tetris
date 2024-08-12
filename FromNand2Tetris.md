@@ -1,4 +1,4 @@
-[官网](https://www.nand2tetris.org/software)
+[官网](https://www.nand2tetris.org)
 开始时间 2024/07/02, 完成时间 2024/08/12
 
 # 基本数字电路
