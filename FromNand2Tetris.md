@@ -139,6 +139,7 @@ if reset == 1 then PC = 0
 else if load == 1 then PC = in
 else PC = PC + 1
 ```
+
 # Hack Computer Architecture and Machine Language
 
 ### Components
@@ -161,7 +162,7 @@ else PC = PC + 1
       - `(value)_2`: 15-bit binary value.
    
 2. **C-Instruction**: `dest=comp;jump`
-	- dest 和 jump 可以为空.
+    - dest 和 jump 可以为空.
     - if (comp jump 0) 跳转执行储存在 ROM[A] 中的指令
     - Components:
        - `dest`: Specifies where to store the result (null, A, D, M, AD, AM, DM, ADM).
@@ -272,3 +273,55 @@ CPU 的 Abstracion Layer 如下图所示, CPU 内部包括 ALU, 一个 A registe
    - 遇到指令时, 根据符号表查找对应的地址：
      - 如果符号存在于符号表中, 使用其对应的地址. 
      - 如果符号不存在于符号表中, 则意味着遇到了一个新的变量, 从地址 16 开始给其分配一个地址. 
+
+# Virtual Machine 
+
+虚拟机 (Virtual Machine, VM) 是一种软件模拟的计算机系统, 可以在物理计算机上运行. 虚拟机的指令集称为虚拟机语言 (Virtual Machine Language), 通常是一种高级语言. 虚拟机主要可以分为两种类型, 系统虚拟机和进程虚拟机, 前者模拟整个物理计算机, 包括硬件和操作系统, 常见的有 VMware, VirtualBox 等；后者则模拟一个独立的进程环境, 用于抽象程序的运行环境, 使程序可以跨平台运行, 常见的有 Java 虚拟机 (JVM) 和 .NET CLR (Common Language Runtime).
+
+对于 JVM 而言, 在编译阶段, Java 源代码首先被编译器（javac）编译成字节码（bytecide, .class 文件）, 字节码是一种中间语言, 与具体的硬件无关. 在执行阶段, JVM 读取字节码, 并通过解释器或即时编译器（JIT）将其翻译为机器码在实际的硬件上执行.
+
+根据虚拟机架构的不同, 虚拟机可以分为栈式虚拟机 (Stack-based VM) 和寄存器虚拟机 (Register-based VM). 在栈式虚拟机中, 指令通常不需要明确指定操作数的位置, 而是隐式地从栈中获取操作数并将结果压回栈中. 寄存器虚拟机则更接近于物理计算机的架构, 指令需要明确指定操作数的位置, 并将结果存储在寄存器中. JVM 是一种栈式虚拟机. 
+
+虚拟机的内存被划分为多个内存段 (Memory Segments), 以 JVM 为例, 包括:
+- Heap: 存放对象实例和数组
+- Stack: 存放局部变量、方法调用信息 (如参数、返回值、局部变量) 和部分数据的中间结果. 每个线程都有自己的栈, 每个栈帧对应一次方法调用.
+- Method Area: 存放类的元数据 (类信息、方法数据、常量池、静态变量等)
+- Program Counter Register: 存放当前线程执行的字节码指令的地址
+- Native Method Stack: 存放本地方法调用的信息. Native 方法是使用其他编程语言编写的代码, 可以通过 JNI 调用.
+- Runtime Constant Pool: 存放编译时生成的字面量和符号引用. 这些常量在类或接口被加载时会被放入到方法区的运行时常量池中.
+
+### Jack Virtual Machine
+
+Jack Virtual Machine Language 包含以下指令：`push`, `pop`, `add`, `sub`, `neg`, `eq`, `gt`, `lt`, `and`, `or`, `not`, `label`, `goto`, `if-goto`, `Function`, `Call`, `return`. 
+
+**虚拟机地址空间**: 
+- 虚拟机栈:
+  - 栈从内存地址 256 开始，栈指针 `SP` 指向下一个空闲的栈顶元素，存放在地址 0。
+- 内存段 (Memory Segments):
+  虚拟机的地址空间被划分为多个内存段，每个段的访问指令为 `push/pop segment i`。八个内存段分别为：
+  1. **local**:
+     - 存放当前函数的局部变量，段基址为 `LCL`。
+
+  2. **argument**:
+     - 存放当前函数调用的参数，段基址为 `ARG`。
+
+  3. **this**:
+     - 存放当前对象的字段 (`fields`)，段基址为 `THIS`。
+
+  4. **that**:
+     - 存放当前对象的元素 (`elements`)，段基址为 `THAT`。
+
+  5. **static**:
+     - 存放所有类的静态变量，起始地址为 16，结束地址为 255。
+
+  6. **pointer**:
+     - 用于设置 `this` 和 `that` 寄存器，`0` 和 `1` 分别对应 `THIS` 和 `THAT`。
+
+  7. **constant**:
+     - 仅为语法需要而设定，并不会在内存中存储常量。
+
+  8. **temp**:
+     - 一个固定的大小为 8 的内存段，起始地址为 5。
+
+
+![VM Address Space](images/VM_addr_space.png)
