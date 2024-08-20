@@ -3,3 +3,7 @@ This resporitory contains my notes and projects for the Coursera course "From Na
 
 - [x] FromNand2Tetris Part 1: Hardware
 - [ ] FromNand2Tetris Part 2: Software
+  
+## License
+
+This project is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
