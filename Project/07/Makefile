@@ -1,22 +1,16 @@
 CC = gcc
 CFLAGS = -Wall -g
-CPPFLAGS = -I.
+CPPFLAGS = -I. # 指定头文件的路径
 
 TARGET = VMTranslator
-OBJS = utility.o parser.o
+OBJS = parser.o codeWriter.o utility.o 
 
 all: $(TARGET)
 
 $(TARGET): main.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
-main.o: main.c utility.h parser.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
-
-parser.o: parser.c parser.h utility.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
-
-utility.o: utility.c utility.h
+%.o: %.c # 编译器会自动找到 .c 文件中依赖的 .h 文件. 
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 clean:

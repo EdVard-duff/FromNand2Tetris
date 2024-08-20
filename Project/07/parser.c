@@ -31,6 +31,12 @@ void parserInit(Parser *parser, const char *filename) {
     }
 }
 
+void parserFree(Parser *parser) {
+    if (parser->filestream != NULL) {
+        fclose(parser->filestream);
+    }
+}
+
 int advance(Parser *parser) {
     char buffer[MAX_COMMAND_LENGTH];
     if (fgets(buffer, MAX_COMMAND_LENGTH, parser->filestream) == NULL) {
@@ -42,7 +48,7 @@ int advance(Parser *parser) {
         return advance(parser);
     }
     setCommand(parser, trimmed);
-    printCommand(parser);
+    // printCommand(parser);
     return 0;
 }
 
@@ -100,8 +106,8 @@ int getArg2(Parser *parser) {
     return parser->currentCommand.offset;
 }
 
-void setCommand(Parser *parser, char *command) {
-    char *token = strtok(command, " ");
+void setCommand(Parser *parser, char *commandStr) {
+    char *token = strtok(commandStr, " ");
 
     if (strcmp(token, "push") == 0) {
         parser->currentCommand.type = C_PUSH;
