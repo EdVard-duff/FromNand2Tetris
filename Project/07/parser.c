@@ -4,23 +4,25 @@
 #include <assert.h>
 #include <stdlib.h>
 
-void printCommand(Parser *parser) {
-    Command command = parser->currentCommand;
-    CommandType type = command.type;
-    switch (type) {
-        case C_ARITHMETIC:
-            printf("Arithmetic command: %d\n", command.arithmetic);
-            break;
-        case C_PUSH:
-            printf("Push command: %s %d\n", getArg1(parser), command.offset);
-            break;
-        case C_POP:
-            printf("Pop command: %s %d\n", getArg1(parser), command.offset);
-            break;
-        default:
-            fprintf(stderr, "Error: Invalid command type\n");
-            exit(1);
-    }
+static const char *typeLookup[] = {
+    "C_ARITHMETIC",
+    "C_PUSH",
+    "C_POP",
+    "C_LABEL",
+    "C_GOTO",
+    "C_IF",
+    "C_FUNCTION",
+    "C_RETURN",
+    "C_CALL",
+    "INVALID_COMMAND"
+};
+
+static void printCommand(Parser *parser) {
+    printf("Command: %s\n", parser->curCommand);
+    printf("Type: %s\n", typeLookup[parser->type]);
+    printf("Arg1: %s\n", parser->arg1);
+    printf("Arg2: %d\n", parser->arg2);
+    printf("\n");
 }
 
 void parserInit(Parser *parser, const char *filename) {
@@ -29,6 +31,9 @@ void parserInit(Parser *parser, const char *filename) {
         fprintf(stderr, "Error: Could not open file %s\n", filename);
         exit(1);
     }
+    parser->curCommand[0] = '\0';
+    parser->type = INVALID_COMMAND;
+    parser->arg1[0] = '\0';
 }
 
 void parserFree(Parser *parser) {
@@ -38,8 +43,8 @@ void parserFree(Parser *parser) {
 }
 
 int advance(Parser *parser) {
-    char buffer[MAX_COMMAND_LENGTH];
-    if (fgets(buffer, MAX_COMMAND_LENGTH, parser->filestream) == NULL) {
+    char buffer[MAX_LINE_LENGTH];
+    if (fgets(buffer, MAX_LINE_LENGTH, parser->filestream) == NULL) {
         return -1; 
     }
 
@@ -47,130 +52,85 @@ int advance(Parser *parser) {
     if (strlen(trimmed) == 0) {
         return advance(parser);
     }
+    strcpy(parser->curCommand, trimmed);
     setCommand(parser, trimmed);
-    // printCommand(parser);
+
+    #ifdef TEST_PARSER
+        printCommand(parser);
+    #endif
+
     return 0;
-}
-
-const char *getCommandType(Parser *parser) {
-    CommandType type = parser->currentCommand.type;
-    switch (type) {
-        case C_ARITHMETIC:
-            return "C_ARITHMETIC";
-        case C_PUSH:
-            return "C_PUSH";
-        case C_POP:
-            return "C_POP";
-        case C_LABEL:
-            return "C_LABEL";
-        case C_GOTO:
-            return "C_GOTO";
-        case C_IF:
-            return "C_IF";
-        case C_FUNCTION:
-            return "C_FUNCTION";
-        case C_RETURN:
-            return "C_RETURN";
-        case C_CALL:
-            return "C_CALL";
-        default:
-            return "INVALID_COMMAND";
-    }
-}
-
-const char *getArg1(Parser *parser) {
-    SegmentType segment = parser->currentCommand.segment;
-    switch (segment) {
-        case SEG_LOCAL:
-            return "local";
-        case SEG_ARGUMENT:
-            return "argument";
-        case SEG_THIS:
-            return "this";
-        case SEG_THAT:
-            return "that";
-        case SEG_CONSTANT:
-            return "constant";
-        case SEG_STATIC:
-            return "static";
-        case SEG_TEMP:
-            return "temp";
-        case SEG_POINTER:
-            return "pointer";
-        default:
-            return "INVALID_SEGMENT";
-    }   
-}
-
-int getArg2(Parser *parser) {
-    return parser->currentCommand.offset;
 }
 
 void setCommand(Parser *parser, char *commandStr) {
     char *token = strtok(commandStr, " ");
 
-    if (strcmp(token, "push") == 0) {
-        parser->currentCommand.type = C_PUSH;
-        parser->currentCommand.segment = parseSegmentType(strtok(NULL, " "));
-        parser->currentCommand.offset = atoi(strtok(NULL, " "));
-        parser->currentCommand.arithmetic = INVALID_ARITHMETIC;
+    if (strcmp(token, "add") == 0 || strcmp(token, "sub") == 0 || strcmp(token, "neg") == 0 || strcmp(token, "eq") == 0 || strcmp(token, "gt") == 0 || strcmp(token, "lt") == 0 || strcmp(token, "and") == 0 || strcmp(token, "or") == 0 || strcmp(token, "not") == 0) {
+        parser->type = C_ARITHMETIC;
+        strcpy(parser->arg1, token);
+        parser->arg2 = -1;
+    } else if (strcmp(token, "push") == 0) {
+        parser->type = C_PUSH;
+        token = strtok(NULL, " ");
+        strcpy(parser->arg1, token);
+        token = strtok(NULL, " ");
+        parser->arg2 = atoi(token);
     } else if (strcmp(token, "pop") == 0) {
-        parser->currentCommand.type = C_POP;
-        parser->currentCommand.segment = parseSegmentType(strtok(NULL, " "));
-        parser->currentCommand.offset = atoi(strtok(NULL, " "));
-        parser->currentCommand.arithmetic = INVALID_ARITHMETIC;
+        parser->type = C_POP;
+        token = strtok(NULL, " ");
+        strcpy(parser->arg1, token);
+        token = strtok(NULL, " ");
+        parser->arg2 = atoi(token);
+    } else if (strcmp(token, "label") == 0) {
+        parser->type = C_LABEL;
+        token = strtok(NULL, " ");
+        strcpy(parser->arg1, token);
+        parser->arg2 = -1;
+    } else if (strcmp(token, "goto") == 0) {
+        parser->type = C_GOTO;
+        token = strtok(NULL, " ");
+        strcpy(parser->arg1, token);
+        parser->arg2 = -1;
+    } else if (strcmp(token, "if-goto") == 0) {
+        parser->type = C_IF;
+        token = strtok(NULL, " ");
+        strcpy(parser->arg1, token);
+        parser->arg2 = -1;
+    } else if (strcmp(token, "function") == 0) {
+        parser->type = C_FUNCTION;
+        token = strtok(NULL, " ");
+        strcpy(parser->arg1, token);
+        token = strtok(NULL, " ");
+        parser->arg2 = atoi(token);
+    } else if (strcmp(token, "return") == 0) {
+        parser->type = C_RETURN;
+        parser->arg1[0] = '\0';
+        parser->arg2 = -1;
+    } else if (strcmp(token, "call") == 0) {
+        parser->type = C_CALL;
+        token = strtok(NULL, " ");
+        strcpy(parser->arg1, token);
+        token = strtok(NULL, " ");
+        parser->arg2 = atoi(token);
     } else {
-        parser->currentCommand.type = C_ARITHMETIC;
-        parser->currentCommand.segment = INVALID_SEGMENT;
-        parser->currentCommand.offset = -1;
-        parser->currentCommand.arithmetic = parseArithmeticType(token);
+        parser->type = INVALID_COMMAND;
+        parser->arg1[0] = '\0';
+        parser->arg2 = -1;
     }
 }
 
-SegmentType parseSegmentType(const char *segment) {
-    if (strcmp(segment, "local") == 0) {
-        return SEG_LOCAL;
-    } else if (strcmp(segment, "argument") == 0) {
-        return SEG_ARGUMENT;
-    } else if (strcmp(segment, "this") == 0) {
-        return SEG_THIS;
-    } else if (strcmp(segment, "that") == 0) {
-        return SEG_THAT;
-    } else if (strcmp(segment, "constant") == 0) {
-        return SEG_CONSTANT;
-    } else if (strcmp(segment, "static") == 0) {
-        return SEG_STATIC;
-    } else if (strcmp(segment, "temp") == 0) {
-        return SEG_TEMP;
-    } else if (strcmp(segment, "pointer") == 0) {
-        return SEG_POINTER;
-    } else {
-        fprintf(stderr, "Error: Invalid segment type\n");
-        exit(1);
+const char *getArg1(Parser *parser) {
+    if (parser->type == C_RETURN || parser->type == INVALID_COMMAND) {
+        return "";
     }
+    return parser->arg1;
 }
 
-ArithmeticType parseArithmeticType(const char *command) {
-    if (strcmp(command, "add") == 0) {
-        return ADD;
-    } else if (strcmp(command, "sub") == 0) {
-        return SUB;
-    } else if (strcmp(command, "neg") == 0) {
-        return NEG;
-    } else if (strcmp(command, "eq") == 0) {
-        return EQ;
-    } else if (strcmp(command, "gt") == 0) {
-        return GT;
-    } else if (strcmp(command, "lt") == 0) {
-        return LT;
-    } else if (strcmp(command, "and") == 0) {
-        return AND;
-    } else if (strcmp(command, "or") == 0) {
-        return OR;
-    } else if (strcmp(command, "not") == 0) {
-        return NOT;
-    } else {
-        fprintf(stderr, "Error: Invalid arithmetic type\n");
-        exit(1);
+int getArg2(Parser *parser) {
+    CommandType type = parser->type;
+    if (type == C_PUSH || type == C_POP || type == C_FUNCTION || type == C_CALL) {
+        return parser->arg2;
     }
+    return -1; 
 }
+

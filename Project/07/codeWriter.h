@@ -27,51 +27,21 @@ void codeWriterInit(CodeWriter *writer, const char *filename);
 void codeWriterFree(CodeWriter *writer);
 
 /**
- * Writes the assembly code for a command.
- *  
- * This function is a wrapper for writing the assembly code for certain types of commands. 
- * 
- * @param writer The CodeWriter object responsible for writing the assembly code.
- * @param command The Command object representing the command to be written.
- */
-void writeCommand(CodeWriter *writer, Command *command);
-
-/**
- * Writes the assembly code for an arithmetic command.
+ * @brief A warpper function that writes specific command based on the command type.
  *
- * @param writer The CodeWriter object responsible for writing the assembly code.
- * @param command The Command object representing the arithmetic command to be written.
+ * @param writer The CodeWriter object used to write the command.
+ * @param parser The Parser object used to parse the command.
  */
-void writeArithmetic(CodeWriter *writer, Command *command);
+void writeCommand(CodeWriter *writer, Parser *parser);
 
-/**
- * Writes the assembly code for the push command.
- *
- * @param writer The CodeWriter object responsible for writing the assembly code.
- * @param command The Command object representing the push command.
- */
-void writePush(CodeWriter *writer, Command *command);
+void writeArithmetic(CodeWriter *writer, Parser *parser);
 
-/**
- * Writes the assembly code for the pop command.
- *
- * @param writer The CodeWriter object responsible for writing the assembly code.
- * @param command The Command object representing the pop command.
- */
-void writePop(CodeWriter *writer, Command *command);
+void writePush(CodeWriter *writer, Parser *parser);
 
-/**
- * @brief Writes the assembly code for incrementing the stack pointer.
- *
- * @param writer The CodeWriter object responsible for writing the assembly code.
- */
+void writePop(CodeWriter *writer, Parser *parser);
+
 void incrementSP(CodeWriter *writer);
 
-/**
- * @brief Writes the assembly code for decrementing the stack pointer.
- *
- * @param writer The CodeWriter object responsible for writing the assembly code.
- */
 void decrementSP(CodeWriter *writer);
 
 #endif // CODE_WRITER_H

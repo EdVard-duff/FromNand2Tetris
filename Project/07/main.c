@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 
     // Process each command
     while (advance(parser) != -1) {
-        writeCommand(writer, &parser->currentCommand);
+        writeCommand(writer, parser);
     }
 
     // Clean up resources
@@ -47,3 +47,6 @@ int main(int argc, char *argv[]) {
 
     return EXIT_SUCCESS;
 }
+
+
+
