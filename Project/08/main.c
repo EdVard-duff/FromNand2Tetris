@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 
     // Initialize code writer
     CodeWriter *writer = safeMalloc(sizeof(CodeWriter));
-    if (!codeWriterInit(writer, output_filepath))
+    if (codeWriterInit(writer, output_filepath) != 0)
     {
         fprintf(stderr, "Failed to initialize code writer\n");
         free(writer);
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
             free(writer);
             return EXIT_FAILURE;
         }
-        printf("Processing file: %s\n", argv[1]);
+        
         if (processFile(writer, argv[1]) != 0)
         {
             codeWriterFree(writer);
@@ -98,6 +98,15 @@ int main(int argc, char *argv[])
     }
     else if (S_ISDIR(st.st_mode))
     {
+        // Try to open the Sys.vm file first
+        char sys_vm[MAX_PATH_LENGTH];
+        snprintf(sys_vm, MAX_PATH_LENGTH, "%s%cSys.vm", argv[1], PATH_SEPARATOR);
+        if (stat(sys_vm, &st) == 0 && S_ISREG(st.st_mode)) {
+            writeBootstrap(writer);
+            processFile(writer, sys_vm);
+        }
+        
+         
         DIR *dir = opendir(argv[1]);
         if (dir == NULL)
         {
@@ -114,7 +123,11 @@ int main(int argc, char *argv[])
             snprintf(filename, MAX_PATH_LENGTH, "%s%c%s", argv[1], PATH_SEPARATOR, entry->d_name);
             if (stat(filename, &st) == 0 && S_ISREG(st.st_mode) && has_suffix(entry->d_name, suffix))
             {
-                printf("Processing file: %s\n", filename);
+                if (strcmp(entry->d_name, "Sys.vm") == 0)
+                {
+                    continue;
+                }
+                
                 if (processFile(writer, filename) != 0)
                 {
                     closedir(dir);
@@ -142,9 +155,11 @@ int main(int argc, char *argv[])
 
 int processFile(CodeWriter *writer, const char *input_file)
 {
+    printf("Processing file: %s\n", input_file);
+    
     // Initialize parser
     Parser *parser = safeMalloc(sizeof(Parser));
-    if (!parserInit(parser, input_file))
+    if (parserInit(parser, input_file) != 0)
     {
         fprintf(stderr, "Failed to initialize parser for file: %s\n", input_file);
         free(parser);
@@ -154,7 +169,7 @@ int processFile(CodeWriter *writer, const char *input_file)
     // Process each command
     while (advance(parser) != -1)
     {
-        if (!writeCommand(writer, parser))
+        if (writeCommand(writer, parser) != 0)
         {
             fprintf(stderr, "Failed to write command for file: %s\n", input_file);
             parserFree(parser);

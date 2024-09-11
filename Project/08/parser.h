@@ -2,6 +2,7 @@
 #define PARSE_H
 
 #include <stdio.h>
+#include "utility.h"
 
 #define MAX_LINE_LENGTH 1024
 #define MAX_COMMAND_LENGTH 64
@@ -21,6 +22,7 @@ typedef enum {
 
 typedef struct {
     FILE *filestream; 
+    char filename[MAX_PATH_LENGTH];
     char curCommand[MAX_COMMAND_LENGTH];
     CommandType type;
     char arg1[MAX_COMMAND_LENGTH];

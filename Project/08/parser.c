@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <libgen.h>
 
 static const char *typeLookup[] = {
     "C_ARITHMETIC",
@@ -31,6 +32,17 @@ int parserInit(Parser *parser, const char *filename) {
         fprintf(stderr, "Error: Could not open file %s\n", filename);
         return -1;
     }
+
+    char filenameCopy[MAX_PATH_LENGTH];
+    strcpy(filenameCopy, filename);
+
+    char *dot = strrchr(filenameCopy, '.');
+    if (dot)
+    {
+        *dot = '\0'; // Remove the extension
+    }
+    strcpy(parser->filename, basename(filenameCopy));    
+
     parser->curCommand[0] = '\0';
     parser->type = INVALID_COMMAND;
     parser->arg1[0] = '\0';

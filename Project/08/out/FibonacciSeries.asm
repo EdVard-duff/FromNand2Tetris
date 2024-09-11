@@ -13,12 +13,12 @@ M=M+1
 // pop pointer 1
 @4
 D=A
-@R13
+@R15
 M=D
 @SP
 AM=M-1
 D=M
-@R13
+@R15
 A=M
 M=D
 
@@ -36,12 +36,12 @@ M=M+1
 D=M
 @0
 D=D+A
-@R13
+@R15
 M=D
 @SP
 AM=M-1
 D=M
-@R13
+@R15
 A=M
 M=D
 
@@ -59,12 +59,12 @@ M=M+1
 D=M
 @1
 D=D+A
-@R13
+@R15
 M=D
 @SP
 AM=M-1
 D=M
-@R13
+@R15
 A=M
 M=D
 
@@ -104,12 +104,12 @@ M=M+1
 D=M
 @0
 D=D+A
-@R13
+@R15
 M=D
 @SP
 AM=M-1
 D=M
-@R13
+@R15
 A=M
 M=D
 
@@ -181,12 +181,12 @@ M=M+1
 D=M
 @2
 D=D+A
-@R13
+@R15
 M=D
 @SP
 AM=M-1
 D=M
-@R13
+@R15
 A=M
 M=D
 
@@ -221,12 +221,12 @@ M=M+1
 // pop pointer 1
 @4
 D=A
-@R13
+@R15
 M=D
 @SP
 AM=M-1
 D=M
-@R13
+@R15
 A=M
 M=D
 
@@ -266,12 +266,12 @@ M=M+1
 D=M
 @0
 D=D+A
-@R13
+@R15
 M=D
 @SP
 AM=M-1
 D=M
-@R13
+@R15
 A=M
 M=D
 

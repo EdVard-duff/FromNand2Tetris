@@ -1,5 +1,6 @@
 CC = gcc
-CFLAGS = -Wall -g -DPRINT_VMCODE=1 -DTEST_PARSER# -D选项用于定义宏. 
+DFLAGS = -DPRINT_VMCODE=1 # -DTEST_PARSER # -D选项用于定义宏. 
+CFLAGS = -Wall -g $(DFLAGS) 
 CPPFLAGS = -I. # 指定头文件的路径
 
 TARGET = VMTranslator

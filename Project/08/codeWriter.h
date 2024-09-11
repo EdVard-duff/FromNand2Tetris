@@ -14,10 +14,14 @@
 #define POINTER 3
 #define STATIC 16
 
+#define POP_TEMP "R15" // Temp register for pop operations
+#define FRAME_END "R14" // Temp register for frame end
+#define RET_ADDR "R13" // Temp register for return address
 typedef struct {
     FILE *filestream;
     char filename[MAX_PATH_LENGTH];
     int labelCounter;
+    int returnCounter;
 } CodeWriter;
 
 // 构造函数
@@ -37,9 +41,9 @@ int writeCommand(CodeWriter *writer, Parser *parser);
 
 void writeArithmetic(CodeWriter *writer, const char *arithmetic);
 
-void writePush(CodeWriter *writer, const char *segment, int offset);
+void writePush(CodeWriter *writer, const char *segment, int offset, const char *filename);
 
-void writePop(CodeWriter *writer, const char *segment, int offset);
+void writePop(CodeWriter *writer, const char *segment, int offset, const char *filename);
 
 void writeLabel(CodeWriter *writer, const char *label);
 
@@ -53,8 +57,12 @@ void writeCall(CodeWriter *writer, const char *functionName, int numArgs);
 
 void writeReturn(CodeWriter *writer);
 
+void writeBootstrap(CodeWriter *writer);
+
 void incrementSP(CodeWriter *writer);
 
 void decrementSP(CodeWriter *writer);
+
+void setStackTop2D(CodeWriter *writer);
 
 #endif // CODE_WRITER_H

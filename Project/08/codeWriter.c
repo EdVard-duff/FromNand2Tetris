@@ -39,7 +39,6 @@ static int getSegmentBase(const char *segment)
 
 int codeWriterInit(CodeWriter *writer, const char *filename)
 {
-    writer->labelCounter = 0;
     char filenameCopy[MAX_PATH_LENGTH];
     strcpy(filenameCopy, filename);
 
@@ -55,6 +54,9 @@ int codeWriterInit(CodeWriter *writer, const char *filename)
         fprintf(stderr, "Failed to open file %s\n", filename);
         return -1; 
     }
+
+    writer->labelCounter = 0;
+    writer->returnCounter = 0;
     return 0;
 }
 
@@ -80,10 +82,10 @@ int writeCommand(CodeWriter *writer, Parser *parser)
         writeArithmetic(writer, parser->arg1);
         break;
     case C_PUSH:
-        writePush(writer, parser->arg1, parser->arg2);
+        writePush(writer, parser->arg1, parser->arg2, parser->filename);
         break;
     case C_POP:
-        writePop(writer, parser->arg1, parser->arg2);
+        writePop(writer, parser->arg1, parser->arg2, parser->filename);
         break;
     case C_LABEL:
         writeLabel(writer, parser->arg1);
@@ -193,7 +195,7 @@ void writeArithmetic(CodeWriter *writer, const char *arithmetic)
     incrementSP(writer);
 }
 
-void writePush(CodeWriter *writer, const char *segment, int offset)
+void writePush(CodeWriter *writer, const char *segment, int offset, const char *filename)
 {
     if (strcmp(segment, "local") == 0 || strcmp(segment, "argument") == 0 || strcmp(segment, "this") == 0 || strcmp(segment, "that") == 0)
     {
@@ -215,7 +217,7 @@ void writePush(CodeWriter *writer, const char *segment, int offset)
     }
     else if (strcmp(segment, "static") == 0)
     {
-        fprintf(writer->filestream, "@%s.%d\n", writer->filename, offset);
+        fprintf(writer->filestream, "@%s.%d\n", filename, offset);
         fprintf(writer->filestream, "D=M\n");
     }
     else
@@ -229,7 +231,7 @@ void writePush(CodeWriter *writer, const char *segment, int offset)
     incrementSP(writer);
 }
 
-void writePop(CodeWriter *writer, const char *segment, int offset)
+void writePop(CodeWriter *writer, const char *segment, int offset, const char *filename)
 {
     if (strcmp(segment, "local") == 0 || strcmp(segment, "argument") == 0 || strcmp(segment, "this") == 0 || strcmp(segment, "that") == 0)
     {
@@ -245,7 +247,7 @@ void writePop(CodeWriter *writer, const char *segment, int offset)
     }
     else if (strcmp(segment, "static") == 0)
     {
-        fprintf(writer->filestream, "@%s.%d\n", writer->filename, offset);
+        fprintf(writer->filestream, "@%s.%d\n", filename, offset);
         fprintf(writer->filestream, "D=A\n");
     }
     else
@@ -253,11 +255,11 @@ void writePop(CodeWriter *writer, const char *segment, int offset)
         fprintf(stderr, "Invalid segment type\n");
         exit(1);
     }
-    fprintf(writer->filestream, "@R13\n"); // Store the address in R13
+    fprintf(writer->filestream, "@%s\n", POP_TEMP); // Store the address in R13
     fprintf(writer->filestream, "M=D\n");
     decrementSP(writer);
     fprintf(writer->filestream, "D=M\n");
-    fprintf(writer->filestream, "@R13\n");
+    fprintf(writer->filestream, "@%s\n", POP_TEMP);
     fprintf(writer->filestream, "A=M\n");
     fprintf(writer->filestream, "M=D\n");
 }
@@ -283,18 +285,157 @@ void writeIfGoto(CodeWriter *writer, const char *label)
 
 void writeFunction(CodeWriter *writer, const char *functionName, int nLocals) 
 {
-    return; 
+    // Create function entry
+    fprintf(writer->filestream, "(%s)\n", functionName);
+    for (int i = 0; i < nLocals; i++) 
+    {
+        writePush(writer, "constant", 0, NULL);
+    } 
+    /* An alternative implementation, simply increment the SP and not set the value.
+    fprintf(writer->filestream, "@%d\n", nLocals);
+    fprintf(writer->filestream, "D=A\n");
+    fprintf(writer->filestream, "@SP\n");
+    fprintf(writer->filestream, "M=M+D\n");
+    */
 }
 
 void writeCall(CodeWriter *writer, const char *functionName, int nArgs) 
 {
-    return; 
+    char returnLabel[16];
+    sprintf(returnLabel, "RETURN_%d", writer->returnCounter);
+    writer->returnCounter++;
+
+    // Push return address
+    fprintf(writer->filestream, "@%s\n", returnLabel);
+    fprintf(writer->filestream, "D=A\n");   
+    setStackTop2D(writer);
+
+    // Push LCL
+    fprintf(writer->filestream, "@LCL\n");
+    fprintf(writer->filestream, "D=M\n");
+    setStackTop2D(writer);
+
+    // Push ARG
+    fprintf(writer->filestream, "@ARG\n");
+    fprintf(writer->filestream, "D=M\n");
+    setStackTop2D(writer);
+
+    // Push THIS
+    fprintf(writer->filestream, "@THIS\n");
+    fprintf(writer->filestream, "D=M\n");
+    setStackTop2D(writer);
+
+    // Push THAT
+    fprintf(writer->filestream, "@THAT\n");
+    fprintf(writer->filestream, "D=M\n");
+    setStackTop2D(writer);
+
+    // ARG = SP - nArgs - 5
+    fprintf(writer->filestream, "@SP\n");
+    fprintf(writer->filestream, "D=M\n");
+    fprintf(writer->filestream, "@%d\n", nArgs + 5);
+    fprintf(writer->filestream, "D=D-A\n");
+    fprintf(writer->filestream, "@ARG\n");
+    fprintf(writer->filestream, "M=D\n");
+
+    // LCL = SP
+    fprintf(writer->filestream, "@SP\n");
+    fprintf(writer->filestream, "D=M\n");
+    fprintf(writer->filestream, "@LCL\n");
+    fprintf(writer->filestream, "M=D\n");
+
+    // Goto function
+    fprintf(writer->filestream, "@%s\n", functionName);
+    fprintf(writer->filestream, "0;JMP\n");
+
+    // Return address label
+    fprintf(writer->filestream, "(%s)\n", returnLabel);
 }
 
 void writeReturn(CodeWriter *writer)
 {
-    return; 
+    // FRAME_END = LCL
+    fprintf(writer->filestream, "@LCL\n");
+    fprintf(writer->filestream, "D=M\n");
+    fprintf(writer->filestream, "@%s\n", FRAME_END);
+    fprintf(writer->filestream, "M=D\n");
+
+    // RET =  *(FRAME_END - 5)
+    fprintf(writer->filestream, "@5\n");
+    fprintf(writer->filestream, "A=D-A\n");
+    fprintf(writer->filestream, "D=M\n");
+    fprintf(writer->filestream, "@%s\n", RET_ADDR);
+    fprintf(writer->filestream, "M=D\n");
+
+    // *ARG = pop()
+    writePop(writer, "argument", 0, NULL);
+
+    // Restore SP
+    fprintf(writer->filestream, "@ARG\n");
+    fprintf(writer->filestream, "D=M+1\n"); // SP = *ARG + 1, 返回值被压入了 *ARG
+    fprintf(writer->filestream, "@SP\n");
+    fprintf(writer->filestream, "M=D\n");
+
+    // Restore THAT
+    fprintf(writer->filestream, "@%s\n", FRAME_END);
+    fprintf(writer->filestream, "A=M-1\n");
+    fprintf(writer->filestream, "AD=M\n");
+    fprintf(writer->filestream, "@THAT\n");
+    fprintf(writer->filestream, "M=D\n");
+
+    // Restore THIS
+    fprintf(writer->filestream, "@%s\n", FRAME_END);
+    fprintf(writer->filestream, "D=M\n");
+    fprintf(writer->filestream, "@2\n");
+    fprintf(writer->filestream, "A=D-A\n");
+    fprintf(writer->filestream, "AD=M\n");
+    fprintf(writer->filestream, "@THIS\n");
+    fprintf(writer->filestream, "M=D\n");
+
+    // Restore ARG
+    fprintf(writer->filestream, "@%s\n", FRAME_END);
+    fprintf(writer->filestream, "D=M\n");
+    fprintf(writer->filestream, "@3\n");
+    fprintf(writer->filestream, "A=D-A\n");
+    fprintf(writer->filestream, "AD=M\n");
+    fprintf(writer->filestream, "@ARG\n");
+    fprintf(writer->filestream, "M=D\n");
+
+    // Restore LCL
+    fprintf(writer->filestream, "@%s\n", FRAME_END);
+    fprintf(writer->filestream, "D=M\n");
+    fprintf(writer->filestream, "@4\n");
+    fprintf(writer->filestream, "A=D-A\n");
+    fprintf(writer->filestream, "AD=M\n");
+    fprintf(writer->filestream, "@LCL\n");
+    fprintf(writer->filestream, "M=D\n");
+
+    // Goto RET =  *(FRAME_END - 5)
+    /* 
+    fprintf(writer->filestream, "@%s\n", FRAME_END);
+    fprintf(writer->filestream, "D=M\n");
+    fprintf(writer->filestream, "@5\n");
+    fprintf(writer->filestream, "A=D-A\n");
+    fprintf(writer->filestream, "A=M\n");
+    fprintf(writer->filestream, "0;JMP\n");
+    */
+    fprintf(writer->filestream, "@%s\n", RET_ADDR);
+    fprintf(writer->filestream, "A=M\n");
+    fprintf(writer->filestream, "0;JMP\n");
 }
+
+void writeBootstrap(CodeWriter *writer)
+{
+    fprintf(writer->filestream, "// Bootstrap code\n");
+    fprintf(writer->filestream, "@256\n");
+    fprintf(writer->filestream, "D=A\n");
+    fprintf(writer->filestream, "@0\n");
+    fprintf(writer->filestream, "M=D\n");
+    
+    fprintf(writer->filestream, "// Call Sys.init\n");
+    writeCall(writer, "Sys.init", 0);
+}
+
 
 void incrementSP(CodeWriter *writer)
 {
@@ -306,4 +447,12 @@ void decrementSP(CodeWriter *writer)
 {
     fprintf(writer->filestream, "@SP\n");
     fprintf(writer->filestream, "AM=M-1\n");
+}
+
+void setStackTop2D(CodeWriter *writer)
+{
+    fprintf(writer->filestream, "@SP\n");
+    fprintf(writer->filestream, "A=M\n");
+    fprintf(writer->filestream, "M=D\n");
+    incrementSP(writer);
 }
