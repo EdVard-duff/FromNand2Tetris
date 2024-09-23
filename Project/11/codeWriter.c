@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <config.h>
 #include "codeWriter.h"
 #include "utility.h"
 

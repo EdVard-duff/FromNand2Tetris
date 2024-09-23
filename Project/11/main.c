@@ -10,7 +10,7 @@
 #include "compilerEngine.h"
 #include "codeWriter.h"
 
-const char *outDir = "Square"; 
+const char *outDir; 
 const char *fileSuffix = "jack";
 
 Tokenizer tokenizer;
